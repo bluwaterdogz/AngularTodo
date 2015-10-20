@@ -41,6 +41,7 @@
     "method-override": "^2.3.5",
     "mongodb": "~2.0.33",
     "mongoose": "^4.1.11",
+    "morgan": "~1.2.2",
     "phantomjs": "^1.9.18",
     "time-grunt": "^1.2.1"
   },

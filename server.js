@@ -1,54 +1,89 @@
 // load required packages
-var express = require('express');
-var mongoose =  require('mongoose');
-var parser = require('body-parser');
-var todos = require('./models/todos');
+var express  = require('express');
+var app      = express();                               // create our app w/ express
+var mongoose = require('mongoose');                     // mongoose for mongodb
+var morgan = require('morgan');             // log requests to the console (express4)
+var bodyParser = require('body-parser');    // pull information from HTML POST (express4)
+var methodOverride = require('method-override'); // simulate DELETE and PUT (express4)
 
-mongoose.connect('mongodb://localhost:9000/angularTodoApp');
+
+// mongoose.connect('mongodb://localhost:9000/angularTodoApp');
 
 // Express Application Created
-var app = exppress();
+var app = express();
 
-// Use body-parser package
-app.use(parser.urlencoded({
-	extended:true
-}));
+    // configuration ====================================================
 
-router.get('/',function(req,res) { 
-  res.json({message:"you are low on druks"});
- });
+    mongoose.connect('mongodb://node:nodeuser@mongo.onmodulus.net:27017/uwO3mypu');     // connect to mongoDB database on modulus.io
 
-var todoRoute = router.route('/alltodos');
+    app.use(express.static(__dirname + '/public'));                 // set the static files location /public/img will be /img for users
+    app.use(morgan('dev'));                                         // log every request to the console
+    app.use(bodyParser.urlencoded({'extended':'true'}));            // parse application/x-www-form-urlencoded
+    app.use(bodyParser.json());                                     // parse application/json
+    app.use(bodyParser.json({ type: 'application/vnd.api+json' })); // parse application/vnd.api+json as json
+    app.use(methodOverride());
 
-// POSTS
+		//  Model ===============================================================
 
-todoRoute.post(function(req,res) { 
-  //  new instance of todo model
-  var todo = new TodoDB();
+		var Todo = mongoose.model('Todo',{
+					text:String
+		});
 
-  todo.name = req.body.name;
-  todo.completed = false;
+    // Listen (start app with node server.js) ======================================
 
-  todo.save(function(err){
-	if(err){
-		res.send(err);
-	}
+		app.listen(8080);
+    console.log("App listening on port 8080");
 
-	res.json({message:"Todo Added! ", data:todo})
-  });
+		// Routes ===============================================================
 
- });
+	app.get('api/todos',function(req,res) {
+		// Mongoose gets all todos in database
+		Todo.find(function(err,todos){
+			// if error send error, halts function
+			if(err)
+				res.send(err);
+			res.json(todos);
+		});
+	 });
 
-// GETS
+	app.post('api/todos',function(req,res){
+		Todo.create({
+			text:req.body.text,
+			done:false
+		},function(err,todos){
+			if(err)
+				res.send(err);
+			//  return new list
+			Todo.find(function(err,todos){
+				if(err)
+					res.send(err);
+				res.json(todos)
+			});
+		});
+	});
 
-todoRoute.get(function(req,res) { 
-  // use todo model to find todo
-  todos.find(function(err,tds){
-	if(err){
-		res.send(err);
-	}
-	res.json(tds);
-  });
- });
+	app.delete('api/todos/:todo_id',function(req,res){
+			Todo.remove({
+				_id: req.params.todo_id
+			},function(err,todo){
 
+				if(err)
+					res.send(err);
 
+				Todo.find(function(err,todos){
+					if(err)
+						res.send(err);
+					res.json(todos);
+				});
+			});
+
+	});
+
+	// Application ===============================================================
+	app.get('', function(req,res){
+		res.sendfile('./app/index.html');
+	});
+
+	app.get('/api', function(req,res){
+		res.sendfile('./models/todos.js');
+	});
